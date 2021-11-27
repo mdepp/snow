@@ -1,8 +1,10 @@
 use std::time::Instant;
 
+use kiss3d::window::State;
 use kiss3d::{light::Light, scene::SceneNode, window::Window};
 use nalgebra::Translation3;
 use nalgebra::Vector3;
+use rand::prelude::ThreadRng;
 use rand::{distributions::Distribution, thread_rng, Rng};
 use statrs::distribution::Normal;
 
@@ -38,44 +40,29 @@ struct Snowflake {
     vel: Vector3<f32>,
 }
 
-fn main() {
-    let mut window = Window::new("Snow animation");
-    window.set_light(Light::StickToCamera);
-    // window.set_background_color(0.7, 0.7, 0.9);
+struct AppState {
+    snowflakes: Vec<Snowflake>,
+    prev_time: Option<Instant>,
+    rng: ThreadRng,
+}
 
-    let mut rng = thread_rng();
-
-    let mut snowflakes: Vec<_> = (0..NUM_SNOWFLAKES)
-        .map(|_| {
-            let mut node = window.add_sphere(RADIUS);
-            let x = rng.gen_range(BOUNDS_MIN.x..BOUNDS_MAX.x);
-            let y = rng.gen_range(BOUNDS_MIN.y..BOUNDS_MAX.y);
-            let z = rng.gen_range(BOUNDS_MIN.z..BOUNDS_MAX.z);
-            node.set_local_translation(Vector3::new(x, y, z).into());
-            node.set_color(1.0, 1.0, 1.0);
-            node.set_lines_color(None);
-
-            let vel = Vector3::new(0.0, 0.0, 0.0);
-
-            Snowflake { node, vel }
-        })
-        .collect();
-
-    let mut prev_time = Instant::now();
-
-    while window.render() {
+impl State for AppState {
+    fn step(&mut self, _: &mut Window) {
         let this_time = Instant::now();
-        let duration_ms = (this_time - prev_time).as_millis();
-        prev_time = this_time;
+        let duration = if let Some(prev_time) = self.prev_time {
+            let duration_ms = (this_time - prev_time).as_millis();
+            duration_ms as f32 / 1000.0
+        } else {
+            0.0
+        };
+        self.prev_time = Some(this_time);
 
-        let duration = duration_ms as f32 / 1000.0;
-
-        for snowflake in snowflakes.iter_mut() {
+        for snowflake in self.snowflakes.iter_mut() {
             let noise_dist = Normal::new(0.0, 20.0).unwrap();
             let noise = Vector3::new(
-                noise_dist.sample(&mut rng) as f32,
-                noise_dist.sample(&mut rng) as f32,
-                noise_dist.sample(&mut rng) as f32,
+                noise_dist.sample(&mut self.rng) as f32,
+                noise_dist.sample(&mut self.rng) as f32,
+                noise_dist.sample(&mut self.rng) as f32,
             );
 
             snowflake.vel += duration * (GRAVITY + WIND + noise);
@@ -93,4 +80,35 @@ fn main() {
             snowflake.node.set_local_translation(wrapped_trans);
         }
     }
+}
+
+fn main() {
+    let mut window = Window::new("Snow animation");
+    window.set_light(Light::StickToCamera);
+    // window.set_background_color(0.7, 0.7, 0.9);
+
+    let mut rng = thread_rng();
+
+    let snowflakes: Vec<_> = (0..NUM_SNOWFLAKES)
+        .map(|_| {
+            let mut node = window.add_sphere(RADIUS);
+            let x = rng.gen_range(BOUNDS_MIN.x..BOUNDS_MAX.x);
+            let y = rng.gen_range(BOUNDS_MIN.y..BOUNDS_MAX.y);
+            let z = rng.gen_range(BOUNDS_MIN.z..BOUNDS_MAX.z);
+            node.set_local_translation(Vector3::new(x, y, z).into());
+            node.set_color(1.0, 1.0, 1.0);
+            node.set_lines_color(None);
+
+            let vel = Vector3::new(0.0, 0.0, 0.0);
+
+            Snowflake { node, vel }
+        })
+        .collect();
+
+    let state = AppState {
+        snowflakes,
+        rng,
+        prev_time: None,
+    };
+    window.render_loop(state);
 }
