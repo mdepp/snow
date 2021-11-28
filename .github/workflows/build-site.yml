@@ -1,0 +1,29 @@
+name: NodeJS with Webpack
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/setup-node@v1
+      with:
+        node-version: 16.x
+    - uses: jetli/wasm-pack-action@v0.3.0
+      with:
+        version: latest
+    - uses: actions/checkout@v2
+    - name: Build wasm package
+      run: wasm-pack build --release
+    - uses: actions/download-artifact@v2
+      with:
+        name: dist
+    - name: Build and bundle site
+      run: |
+        cd www
+        npm install
+        npx webpack --config webpack.prod.js
