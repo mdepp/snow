@@ -29,3 +29,8 @@ jobs:
         cd www
         npm install
         npx webpack --config webpack.prod.js
+    - name: Deploy to gh-pages branch
+      uses: JamesIves/github-pages-deploy-action@4.1.7
+      with:
+        branch: gh-pages
+        folder: www/dist
