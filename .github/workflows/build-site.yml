@@ -13,6 +13,10 @@ jobs:
     - uses: actions/setup-node@v1
       with:
         node-version: 16.x
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: nightly
     - uses: jetli/wasm-pack-action@v0.3.0
       with:
         version: latest
