@@ -17,6 +17,7 @@ jobs:
       with:
         profile: minimal
         toolchain: nightly
+    - run: rustup default nightly
     - uses: jetli/wasm-pack-action@v0.3.0
       with:
         version: latest
